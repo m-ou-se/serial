@@ -63,18 +63,15 @@ using _detail::DataBits;
 
 class Port {
 
-public:
 #ifdef WIN32
-	using native_handle_t = HANDLE;
-private:
 	HANDLE handle_ = INVALID_HANDLE_VALUE;
 #else
-	using native_handle_t = int;
-private:
 	int handle_ = -1;
 #endif
 
 public:
+	using native_handle_t = decltype(handle_);
+
 	Port() {}
 	Port(Port &&);
 	~Port() { close(); }
