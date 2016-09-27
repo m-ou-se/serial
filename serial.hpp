@@ -117,7 +117,8 @@ public:
 	// Drop all bytes that were already received, but not yet read.
 	void flush();
 
-	// The native file handle. (The HANDLE on windows, the file descriptor (int) on other systems.)
+	// The native file handle.
+	// (The HANDLE on windows, the file descriptor (int) on other systems.)
 	native_handle_t native_handle() const { return handle_; }
 
 	// Releases ownership of the file handle.
