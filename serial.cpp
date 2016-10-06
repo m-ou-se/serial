@@ -223,7 +223,7 @@ error_or<unsigned char> Port::read(std::chrono::milliseconds timeout) {
 	if (read == 0) return std::make_error_code(std::errc::stream_timeout);
 	return b;
 #else
-	{
+	if (timeout.count() != 0) {
 		timeval tv;
 		tv.tv_sec = timeout.count() / 1000;
 		tv.tv_usec = timeout.count() % 1000 * 1000;
@@ -234,14 +234,12 @@ error_or<unsigned char> Port::read(std::chrono::milliseconds timeout) {
 		if (r < 0) throw std::error_code(errno, std::system_category());
 		if (r == 0) return std::make_error_code(std::errc::stream_timeout);
 	}
-	{
-		unsigned char b;
-		ssize_t r = ::read(handle_, &b, 1);
-		if (r < 0) throw std::error_code(errno, std::system_category());
-		if (r == 0) return std::make_error_code(std::errc::stream_timeout);
-		usleep(1);
-		return b;
-	}
+	unsigned char b;
+	ssize_t r = ::read(handle_, &b, 1);
+	if (r < 0) throw std::error_code(errno, std::system_category());
+	if (r == 0) return std::make_error_code(std::errc::stream_timeout);
+	usleep(1);
+	return b;
 #endif
 }
 

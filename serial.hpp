@@ -111,7 +111,7 @@ public:
 	error_or<void> write(unsigned char);
 
 	// Read without timeout.
-	error_or<unsigned char> read();
+	error_or<unsigned char> read() { return read(std::chrono::milliseconds(0)); }
 
 	// Returns std::errc::stream_timeout on timeout.
 	error_or<unsigned char> read(std::chrono::milliseconds timeout);
