@@ -99,7 +99,7 @@ public:
 	error_or<void> close();
 
 	// Set baud rate and other settings.
-	// Returns false on failure. Does not throw.
+	// Returns false on failure.
 	error_or<void> set(
 		long baud_rate,
 		Parity = Parity::none,
