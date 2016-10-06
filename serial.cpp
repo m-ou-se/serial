@@ -231,12 +231,12 @@ error_or<unsigned char> Port::read(std::chrono::milliseconds timeout) {
 		FD_ZERO(&fds);
 		FD_SET(handle_, &fds);
 		int r = ::select(handle_ + 1, &fds, 0, 0, &tv);
-		if (r < 0) throw std::error_code(errno, std::system_category());
+		if (r < 0) return std::error_code(errno, std::system_category());
 		if (r == 0) return std::make_error_code(std::errc::stream_timeout);
 	}
 	unsigned char b;
 	ssize_t r = ::read(handle_, &b, 1);
-	if (r < 0) throw std::error_code(errno, std::system_category());
+	if (r < 0) return std::error_code(errno, std::system_category());
 	if (r == 0) return std::make_error_code(std::errc::stream_timeout);
 	usleep(1);
 	return b;
