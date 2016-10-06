@@ -19,6 +19,10 @@ if (auto c = p.read(100ms)) {
 
 See [serial.hpp](serial.hpp).
 
+## Dependencies
+
+- [mstd](https://github.com/m-ou-se/mstd)
+
 ## License
 
 Two-clause BSD license, see [COPYING](COPYING).
