@@ -3,8 +3,10 @@
 #include <chrono>
 #include <stdexcept>
 #include <string>
+#include <system_error>
 #include <vector>
 
+#include <mstd/error_or.hpp>
 #include <mstd/optional.hpp>
 
 #ifdef WIN32
@@ -15,6 +17,7 @@ namespace Serial {
 
 using mstd::optional;
 using mstd::nullopt;
+using mstd::error_or;
 
 namespace _detail {
 
@@ -84,21 +87,20 @@ public:
 	// Opens (a file handle to) the serial port.
 	// On POSIX systems, provide the device file name (e.g. "/dev/ttyUSB0").
 	// On Windows, provide the COM port name (e.g "COM3").
-	// Returns false on failure. Does not throw.
-	bool open(char const * name);
+	error_or<void> open(char const * name);
 
 	// Take ownership of an already opened serial port.
-	bool open(native_handle_t native_handle);
+	error_or<void> open(native_handle_t native_handle);
 
 	// Check if the Port contains an handle or file descriptor.
 	bool opened() const;
 
 	// Closes the file handle. Doesn't do anything when !opened().
-	void close();
+	error_or<void> close();
 
 	// Set baud rate and other settings.
 	// Returns false on failure. Does not throw.
-	bool set(
+	error_or<void> set(
 		long baud_rate,
 		Parity = Parity::none,
 		StopBits = StopBits::one,
@@ -106,16 +108,16 @@ public:
 	);
 
 	// Throws on failure.
-	void write(unsigned char);
+	error_or<void> write(unsigned char);
 
-	// Read without timeout. Throws on failure.
-	unsigned char read();
+	// Read without timeout.
+	error_or<unsigned char> read();
 
-	// Returns nullopt on timeout. Throws on failure.
-	optional<unsigned char> read(std::chrono::milliseconds timeout);
+	// Returns std::errc::stream_timeout on timeout.
+	error_or<unsigned char> read(std::chrono::milliseconds timeout);
 
 	// Drop all bytes that were already received, but not yet read.
-	void flush();
+	error_or<void> flush();
 
 	// The native file handle.
 	// (The HANDLE on windows, the file descriptor (int) on other systems.)

@@ -1,3 +1,4 @@
+#include <system_error>
 #include <utility>
 
 #ifdef WIN32
@@ -29,35 +30,41 @@ void set_raw_tty_settings(termios & tty) {
 }
 #endif
 
-bool Port::open(char const * name) {
+error_or<void> Port::open(char const * name) {
 #ifdef WIN32
 	std::string file_name = "\\\\.\\";
 	file_name += name;
-	return open(CreateFile(file_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0));
+	auto handle = CreateFile(file_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	if (handle == INVALID_HANDLE_VALUE) return std::error_code(GetLastError(), std::system_category());
+	return open(handle);
 #else
 	int fd = ::open(name, O_RDWR);
-	if (open(fd)) return true;
-	::close(fd);
-	return false;
+	if (fd == 0) return std::error_code(errno, std::system_category());
+	if (auto r = open(fd)) {
+		return {};
+	} else {
+		::close(fd);
+		return r.error();
+	}
 #endif
 }
 
-bool Port::open(native_handle_t handle) {
+error_or<void> Port::open(native_handle_t handle) {
 #ifndef WIN32
 	// On Windows, serial ports are always open in 'raw' mode.
 	// On other systems, we always switch to raw mode,
 	// while leaving the other settings (baud rate, etc.) as they are.
 	termios tty;
-	if (tcgetattr(handle, &tty)) return false;
+	if (tcgetattr(handle, &tty)) return std::error_code(errno, std::system_category());
 	set_raw_tty_settings(tty);
-	if (tcsetattr(handle, TCSANOW, &tty)) return false;
+	if (tcsetattr(handle, TCSANOW, &tty)) return std::error_code(errno, std::system_category());
 #endif
 	close();
 	handle_ = handle;
-	return opened();
+	return {};
 }
 
-bool Port::set(
+error_or<void> Port::set(
 	long baud_rate,
 	Parity parity,
 	StopBits stop_bits,
@@ -91,10 +98,14 @@ bool Port::set(
 	dcb.ErrorChar = 0;
 	dcb.EofChar = 0;
 	dcb.EvtChar = 0;
-	if (!SetCommState(handle_, &dcb)) return false;
+	if (!SetCommState(handle_, &dcb)) {
+		return std::error_code(GetLastError(), std::system_category());
+	}
 #else
 	termios tty;
-	if (tcgetattr(handle_, &tty)) return false;
+	if (tcgetattr(handle_, &tty)) {
+		return std::error_code(errno, std::system_category());
+	}
 	set_raw_tty_settings(tty);
 	if (parity) {
 		tty.c_cflag |= PARENB;
@@ -139,7 +150,7 @@ bool Port::set(
 		case  57600: b =  B57600; break;
 		case 115200: b = B115200; break;
 		case 230400: b = B230400; break;
-		default: return false;
+		default: return std::make_error_code(std::errc::invalid_argument);
 	}
 	tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
 	tty.c_oflag &= ~OPOST;
@@ -147,11 +158,11 @@ bool Port::set(
 	tty.c_cflag |= CLOCAL | CREAD;
 	tty.c_cc[VMIN] = 1;
 	tty.c_cc[VTIME] = 0;
-	if (cfsetospeed(&tty, b)) return false;
-	if (cfsetispeed(&tty, b)) return false;
-	if (tcsetattr(handle_, TCSANOW, &tty)) return false;
+	if (cfsetospeed(&tty, b) || cfsetispeed(&tty, b) || tcsetattr(handle_, TCSANOW, &tty)) {
+		return std::error_code(errno, std::system_category());
+	}
 #endif
-	return true;
+	return {};
 }
 
 Port::Port(Port && other) {
@@ -166,26 +177,37 @@ Port & Port::operator = (Port && other) {
 	return *this;
 }
 
-void Port::close() {
-	if (!opened()) return;
+error_or<void> Port::close() {
+	if (!opened()) return {};
+	std::error_code e = {};
 #ifdef WIN32
-	CloseHandle(handle_);
+	if (!CloseHandle(handle_)) {
+		e = std::error_code(GetLastError(), std::system_category());
+	}
 #else
-	::close(handle_);
+	if (::close(handle_)) {
+		e = std::error_code(errno, std::system_category());
+	}
 #endif
 	handle_ = Port().handle_;
+	return e;
 }
 
-void Port::write(unsigned char b) {
+error_or<void> Port::write(unsigned char b) {
 #ifdef WIN32
 	DWORD written = 0;
-	if (!WriteFile(handle_, &b, 1, &written, 0) || written != 1) throw PortError("Unable to write data to serial port.");
+	if (!WriteFile(handle_, &b, 1, &written, 0) || written != 1) {
+		return std::error_code(GetLastError(), std::system_category());
+	}
 #else
-	if (::write(handle_, &b, 1) < 0) throw PortError(std::string("Unable to write to serial port: ") + strerror(errno));
+	if (::write(handle_, &b, 1) < 0) {
+		return std::error_code(errno, std::system_category());
+	}
 #endif
+	return {};
 }
 
-optional<unsigned char> Port::read(std::chrono::milliseconds timeout) {
+error_or<unsigned char> Port::read(std::chrono::milliseconds timeout) {
 #ifdef WIN32
 	COMMTIMEOUTS t;
 	t.ReadIntervalTimeout = 0;
@@ -193,11 +215,12 @@ optional<unsigned char> Port::read(std::chrono::milliseconds timeout) {
 	t.ReadTotalTimeoutMultiplier = 0;
 	t.WriteTotalTimeoutConstant = 0;
 	t.WriteTotalTimeoutMultiplier = 0;
-	if (!SetCommTimeouts(handle_, &t)) throw PortError("Unable to set timeout on serial port.");
 	unsigned char b;
 	DWORD read = 0;
-	if (!ReadFile(handle_, &b , 1, &read, 0)) throw PortError("Unable to read data from serial port.");
-	if (read == 0) return std::nullopt;
+	if (!SetCommTimeouts(handle_, &t) || !ReadFile(handle_, &b , 1, &read, 0)) {
+		return std::error_code(GetLastError(), std::system_category());
+	}
+	if (read == 0) return std::make_error_code(std::errc::stream_timeout);
 	return b;
 #else
 	{
@@ -208,26 +231,31 @@ optional<unsigned char> Port::read(std::chrono::milliseconds timeout) {
 		FD_ZERO(&fds);
 		FD_SET(handle_, &fds);
 		int r = ::select(handle_ + 1, &fds, 0, 0, &tv);
-		if (r < 0) throw PortError(std::string("Unable to read from serial port. select(): ") + strerror(errno));
-		if (r == 0) return nullopt;
+		if (r < 0) throw std::error_code(errno, std::system_category());
+		if (r == 0) return std::make_error_code(std::errc::stream_timeout);
 	}
 	{
 		unsigned char b;
 		ssize_t r = ::read(handle_, &b, 1);
-		if (r < 0) throw PortError(std::string("Unable to read from serial port: ") + strerror(errno));
-		if (r == 0) return nullopt;
+		if (r < 0) throw std::error_code(errno, std::system_category());
+		if (r == 0) return std::make_error_code(std::errc::stream_timeout);
 		usleep(1);
 		return b;
 	}
 #endif
 }
 
-void Port::flush() {
+error_or<void> Port::flush() {
 #ifdef WIN32
-	PurgeComm(handle_, PURGE_RXCLEAR);
+	if (!PurgeComm(handle_, PURGE_RXCLEAR)) {
+		return std::error_code(GetLastError(), std::system_category());
+	}
 #else
-	tcflush(handle_, TCIFLUSH);
+	if (tcflush(handle_, TCIFLUSH)) {
+		return std::make_error_code(std::errc::stream_timeout);
+	}
 #endif
+	return {};
 }
 
 std::vector<std::string> Port::ports() {
