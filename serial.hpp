@@ -5,13 +5,16 @@
 #include <string>
 #include <vector>
 
-#include "optional.hpp"
+#include <mstd/optional.hpp>
 
 #ifdef WIN32
 #include <windows.h>
 #endif
 
 namespace Serial {
+
+using mstd::optional;
+using mstd::nullopt;
 
 namespace _detail {
 
@@ -109,7 +112,7 @@ public:
 	unsigned char read();
 
 	// Returns nullopt on timeout. Throws on failure.
-	std::optional<unsigned char> read(std::chrono::milliseconds timeout);
+	optional<unsigned char> read(std::chrono::milliseconds timeout);
 
 	// Drop all bytes that were already received, but not yet read.
 	void flush();

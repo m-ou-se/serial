@@ -185,7 +185,7 @@ void Port::write(unsigned char b) {
 #endif
 }
 
-std::optional<unsigned char> Port::read(std::chrono::milliseconds timeout) {
+optional<unsigned char> Port::read(std::chrono::milliseconds timeout) {
 #ifdef WIN32
 	COMMTIMEOUTS t;
 	t.ReadIntervalTimeout = 0;
@@ -209,13 +209,13 @@ std::optional<unsigned char> Port::read(std::chrono::milliseconds timeout) {
 		FD_SET(handle_, &fds);
 		int r = ::select(handle_ + 1, &fds, 0, 0, &tv);
 		if (r < 0) throw PortError(std::string("Unable to read from serial port. select(): ") + strerror(errno));
-		if (r == 0) return std::nullopt;
+		if (r == 0) return nullopt;
 	}
 	{
 		unsigned char b;
 		ssize_t r = ::read(handle_, &b, 1);
 		if (r < 0) throw PortError(std::string("Unable to read from serial port: ") + strerror(errno));
-		if (r == 0) return std::nullopt;
+		if (r == 0) return nullopt;
 		usleep(1);
 		return b;
 	}
