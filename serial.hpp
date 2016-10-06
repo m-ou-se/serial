@@ -132,10 +132,6 @@ public:
 	static std::vector<std::string> ports();
 };
 
-struct PortError : std::runtime_error {
-	using std::runtime_error::runtime_error;
-};
-
 inline bool Port::opened() const {
 #ifdef WIN32
 	return handle_ != INVALID_HANDLE_VALUE;
