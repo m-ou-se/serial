@@ -228,7 +228,7 @@ error_or<optional<unsigned char>> Port::read(std::chrono::milliseconds timeout) 
 		return std::error_code(GetLastError(), std::system_category());
 	}
 	if (read == 0) return optional<unsigned char>{};
-	return b;
+	return {{b}};
 #else
 	if (timeout.count() != 0) {
 		timeval tv;
