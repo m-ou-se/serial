@@ -16,7 +16,6 @@
 namespace Serial {
 
 using mstd::optional;
-using mstd::nullopt;
 using mstd::error_or;
 
 namespace _detail {
@@ -111,10 +110,10 @@ public:
 	error_or<void> write(unsigned char);
 
 	// Read without timeout.
-	error_or<unsigned char> read() { return read(std::chrono::milliseconds(0)); }
+	error_or<unsigned char> read();
 
-	// Returns std::errc::stream_timeout on timeout.
-	error_or<unsigned char> read(std::chrono::milliseconds timeout);
+	// Returns nullopt on timeout.
+	error_or<optional<unsigned char>> read(std::chrono::milliseconds timeout);
 
 	// Drop all bytes that were already received, but not yet read.
 	error_or<void> flush();

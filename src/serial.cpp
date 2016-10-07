@@ -207,7 +207,14 @@ error_or<void> Port::write(unsigned char b) {
 	return {};
 }
 
-error_or<unsigned char> Port::read(std::chrono::milliseconds timeout) {
+error_or<unsigned char> Port::read() {
+	auto r = read(std::chrono::milliseconds(0));
+	if (r.error()) return r.error();
+	if (!r.value()) return make_error_code(std::errc::io_error);
+	return *r.value();
+}
+
+error_or<optional<unsigned char>> Port::read(std::chrono::milliseconds timeout) {
 #ifdef WIN32
 	COMMTIMEOUTS t;
 	t.ReadIntervalTimeout = 0;
@@ -220,7 +227,7 @@ error_or<unsigned char> Port::read(std::chrono::milliseconds timeout) {
 	if (!SetCommTimeouts(handle_, &t) || !ReadFile(handle_, &b , 1, &read, 0)) {
 		return std::error_code(GetLastError(), std::system_category());
 	}
-	if (read == 0) return std::make_error_code(std::errc::stream_timeout);
+	if (read == 0) return optional<unsigned char>{};
 	return b;
 #else
 	if (timeout.count() != 0) {
@@ -232,13 +239,13 @@ error_or<unsigned char> Port::read(std::chrono::milliseconds timeout) {
 		FD_SET(handle_, &fds);
 		int r = ::select(handle_ + 1, &fds, 0, 0, &tv);
 		if (r < 0) return std::error_code(errno, std::system_category());
-		if (r == 0) return std::make_error_code(std::errc::stream_timeout);
+		if (r == 0) return optional<unsigned char>{};
 	}
 	unsigned char b;
 	ssize_t r = ::read(handle_, &b, 1);
 	if (r < 0) return std::error_code(errno, std::system_category());
-	if (r == 0) return std::make_error_code(std::errc::stream_timeout);
-	return b;
+	if (r == 0) return optional<unsigned char>{};
+	return {{b}};
 #endif
 }
 
@@ -249,7 +256,7 @@ error_or<void> Port::flush() {
 	}
 #else
 	if (tcflush(handle_, TCIFLUSH)) {
-		return std::make_error_code(std::errc::stream_timeout);
+		return std::error_code(errno, std::system_category());
 	}
 #endif
 	return {};
