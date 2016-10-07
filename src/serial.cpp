@@ -13,7 +13,7 @@
 #include <sys/select.h>
 #endif
 
-#include "serial.hpp"
+#include <serial/serial.hpp>
 
 namespace Serial {
 

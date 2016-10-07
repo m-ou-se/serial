@@ -17,7 +17,7 @@ if (auto c = p.read(100ms)) {
 
 ## Documentation
 
-See [serial.hpp](serial.hpp).
+See [serial.hpp](include/serial/serial.hpp).
 
 ## Dependencies
 
