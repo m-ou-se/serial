@@ -39,7 +39,7 @@ error_or<void> Port::open(char const * name) {
 	return open(handle);
 #else
 	int fd = ::open(name, O_RDWR);
-	if (fd == 0) return std::error_code(errno, std::system_category());
+	if (fd < 0) return std::error_code(errno, std::system_category());
 	if (auto r = open(fd)) {
 		return {};
 	} else {
