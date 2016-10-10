@@ -113,6 +113,9 @@ public:
 	error_or<unsigned char> read();
 
 	// Returns nullopt on timeout.
+	// Note that many USB serial ports have a latency of about 16 milliseconds.
+	// So, for example, read(2ms) might return nothing, even though a byte was
+	// received by the serial port, since the receive buffer wasn't send to the PC yet.
 	error_or<optional<unsigned char>> read(std::chrono::milliseconds timeout);
 
 	// Drop all bytes that were already received, but not yet read.
