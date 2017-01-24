@@ -115,14 +115,15 @@ public:
 	// Returns nullopt on timeout.
 	// Note that many USB serial ports have a latency of about 16 milliseconds.
 	// So, for example, read(2ms) might return nothing, even though a byte was
-	// received by the serial port, since the receive buffer wasn't send to the PC yet.
+	// already received by the USB serial port, if the receive buffer wasn't
+	// yet transferred to the computer.
 	error_or<optional<unsigned char>> read(std::chrono::milliseconds timeout);
 
 	// Drop all bytes that were already received, but not yet read.
 	error_or<void> flush();
 
 	// The native file handle.
-	// (The HANDLE on windows, the file descriptor (int) on other systems.)
+	// (The HANDLE on Windows, the file descriptor (int) on other systems.)
 	native_handle_t native_handle() const { return handle_; }
 
 	// Releases ownership of the file handle.
@@ -130,7 +131,7 @@ public:
 	native_handle_t release_native_handle();
 
 	// Gives a list with suggestions for port names to give to open().
-	// This list may not be complete.
+	// This list may be incomplete.
 	static std::vector<std::string> ports();
 };
 
