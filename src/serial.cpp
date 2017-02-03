@@ -264,7 +264,7 @@ error_or<void> Port::flush() {
 
 std::vector<std::string> Port::ports() {
 	std::vector<std::string> result;
-#ifdef _WIN32
+#ifdef WIN32
 	// GetDefaultCommConfig is slow, so we only test for the first 16 ports.
 	for (int i = 1; i <= 16; i++) {
 		char port[6] = "COM";
