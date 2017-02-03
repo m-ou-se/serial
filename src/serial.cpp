@@ -218,7 +218,7 @@ error_or<optional<unsigned char>> Port::read(std::chrono::milliseconds timeout) 
 #ifdef WIN32
 	COMMTIMEOUTS t;
 	t.ReadIntervalTimeout = 0;
-	t.ReadTotalTimeoutConstant = timeout.count();;
+	t.ReadTotalTimeoutConstant = timeout.count();
 	t.ReadTotalTimeoutMultiplier = 0;
 	t.WriteTotalTimeoutConstant = 0;
 	t.WriteTotalTimeoutMultiplier = 0;
