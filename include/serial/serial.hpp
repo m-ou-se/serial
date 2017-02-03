@@ -106,12 +106,13 @@ public:
 		DataBits = DataBits::eight
 	);
 
-	// Throws on failure.
+	// Write a byte.
 	error_or<void> write(unsigned char);
 
-	// Read without timeout.
+	// Read a byte, without timeout.
 	error_or<unsigned char> read();
 
+	// Read a byte.
 	// Returns nullopt on timeout.
 	// Note that many USB serial ports have a latency of about 16 milliseconds.
 	// So, for example, read(2ms) might return nothing, even though a byte was
