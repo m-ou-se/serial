@@ -70,6 +70,16 @@ error_or<void> Port::set(
 	StopBits stop_bits,
 	DataBits data_bits
 ) {
+	return Serial::set(handle_, baud_rate, parity, stop_bits, data_bits);
+}
+
+error_or<void> set(
+	Port::native_handle_t handle,
+	long baud_rate,
+	Parity parity,
+	StopBits stop_bits,
+	DataBits data_bits
+) {
 #ifdef WIN32
 	DCB dcb = {};
 	dcb.DCBlength = sizeof(DCB);
@@ -98,12 +108,12 @@ error_or<void> Port::set(
 	dcb.ErrorChar = 0;
 	dcb.EofChar = 0;
 	dcb.EvtChar = 0;
-	if (!SetCommState(handle_, &dcb)) {
+	if (!SetCommState(handle, &dcb)) {
 		return std::error_code(GetLastError(), std::system_category());
 	}
 #else
 	termios tty;
-	if (tcgetattr(handle_, &tty)) {
+	if (tcgetattr(handle, &tty)) {
 		return std::error_code(errno, std::system_category());
 	}
 	set_raw_tty_settings(tty);
@@ -158,7 +168,7 @@ error_or<void> Port::set(
 	tty.c_cflag |= CLOCAL | CREAD;
 	tty.c_cc[VMIN] = 1;
 	tty.c_cc[VTIME] = 0;
-	if (cfsetospeed(&tty, b) || cfsetispeed(&tty, b) || tcsetattr(handle_, TCSANOW, &tty)) {
+	if (cfsetospeed(&tty, b) || cfsetispeed(&tty, b) || tcsetattr(handle, TCSANOW, &tty)) {
 		return std::error_code(errno, std::system_category());
 	}
 #endif

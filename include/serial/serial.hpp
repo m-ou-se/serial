@@ -149,4 +149,13 @@ inline Port::native_handle_t Port::release_native_handle() {
 	return h;
 }
 
+// Set baud rate and other settings on a native handle.
+error_or<void> set(
+	Port::native_handle_t,
+	long baud_rate,
+	Parity = Parity::none,
+	StopBits = StopBits::one,
+	DataBits = DataBits::eight
+);
+
 }
